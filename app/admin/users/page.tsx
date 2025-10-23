@@ -49,8 +49,8 @@ export default function AdminDashboard() {
       .eq("id", currentUser.id)
       .single();
 
-    if (roleData?.role !== "admin") {
-      window.location.href = "/";
+    if (roleData?.role !== "admin" && roleData?.role !== "supervisor") {
+      window.location.href = "/dashboard";
       return;
     }
 

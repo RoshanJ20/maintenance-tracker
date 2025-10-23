@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { signOut } from "@/lib/supabaseAuth";
 import AuthForm from "@/components/AuthForm";
 
 export default function HomePage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,6 +29,16 @@ export default function HomePage() {
         
         if (roleData) {
           setUserRole(roleData.role);
+          
+          // Redirect based on role
+          if (roleData.role === "admin" || roleData.role === "supervisor") {
+            router.push("/admin");
+            return;
+          } else {
+            // Regular users go to user dashboard
+            router.push("/dashboard");
+            return;
+          }
         }
       } else {
         setUser(null);
@@ -44,7 +56,7 @@ export default function HomePage() {
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, []);
+  }, [router]);
 
   const handleSignOut = async () => {
     await signOut();
