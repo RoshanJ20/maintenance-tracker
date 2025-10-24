@@ -53,6 +53,28 @@ interface AssetFormData {
   purchasedate: string;
 }
 
+interface Task {
+  id: string;
+  asset_id: string | null;
+  task_name: string;
+  last_done_date: string | null;
+  next_due_date: string | null;
+  frequency_days: number | null;
+  notified: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface TaskFormData {
+  asset_id: string;
+  task_name: string;
+  last_done_date: string;
+  next_due_date: string;
+  frequency_days: string;
+  notes: string;
+}
+
 export default function AdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -93,6 +115,22 @@ export default function AdminDashboard() {
     purchasedate: ""
   });
   const [assetFormError, setAssetFormError] = useState<string>("");
+
+  // Task management state
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isTaskDeleteDialogOpen, setIsTaskDeleteDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [deletingTask, setDeletingTask] = useState<Task | null>(null);
+  const [taskFormData, setTaskFormData] = useState<TaskFormData>({
+    asset_id: "",
+    task_name: "",
+    last_done_date: "",
+    next_due_date: "",
+    frequency_days: "",
+    notes: ""
+  });
+  const [taskFormError, setTaskFormError] = useState<string>("");
 
   useEffect(() => {
     fetchUserAndStats();
@@ -160,6 +198,9 @@ export default function AdminDashboard() {
       fetchUsers();
     } else if (value === "assets") {
       fetchAssets();
+    } else if (value === "tasks") {
+      fetchTasks();
+      fetchAssets(); // Also fetch assets for the dropdown
     }
   };
 
@@ -385,6 +426,166 @@ export default function AdminDashboard() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
+  // ===== TASK MANAGEMENT FUNCTIONS =====
+  
+  const fetchTasks = async () => {
+    const { data, error } = await supabase
+      .from("tasks")
+      .select("*")
+      .order("next_due_date", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching tasks:", error);
+      return;
+    }
+
+    setTasks(data || []);
+  };
+
+  const openCreateTaskDialog = () => {
+    setEditingTask(null);
+    setTaskFormData({
+      asset_id: "",
+      task_name: "",
+      last_done_date: "",
+      next_due_date: "",
+      frequency_days: "",
+      notes: ""
+    });
+    setTaskFormError("");
+    // Ensure assets are loaded before opening dialog
+    if (assets.length === 0) {
+      fetchAssets();
+    }
+    setIsTaskDialogOpen(true);
+  };
+
+  const openEditTaskDialog = (task: Task) => {
+    setEditingTask(task);
+    setTaskFormData({
+      asset_id: task.asset_id || "",
+      task_name: task.task_name,
+      last_done_date: task.last_done_date || "",
+      next_due_date: task.next_due_date || "",
+      frequency_days: task.frequency_days?.toString() || "",
+      notes: task.notes || ""
+    });
+    setTaskFormError("");
+    // Ensure assets are loaded before opening dialog
+    if (assets.length === 0) {
+      fetchAssets();
+    }
+    setIsTaskDialogOpen(true);
+  };
+
+  const openDeleteTaskDialog = (task: Task) => {
+    setDeletingTask(task);
+    setIsTaskDeleteDialogOpen(true);
+  };
+
+  const handleSaveTask = async () => {
+    setTaskFormError("");
+
+    // Validation
+    if (!taskFormData.task_name.trim()) {
+      setTaskFormError("Task name is required");
+      return;
+    }
+
+    if (!taskFormData.asset_id) {
+      setTaskFormError("Please select an asset");
+      return;
+    }
+
+    const taskData = {
+      asset_id: taskFormData.asset_id,
+      task_name: taskFormData.task_name,
+      last_done_date: taskFormData.last_done_date || null,
+      next_due_date: taskFormData.next_due_date || null,
+      frequency_days: taskFormData.frequency_days ? parseInt(taskFormData.frequency_days) : null,
+      notes: taskFormData.notes || null
+    };
+
+    if (editingTask) {
+      // Update existing task
+      const { error } = await supabase
+        .from("tasks")
+        .update(taskData)
+        .eq("id", editingTask.id);
+
+      if (error) {
+        setTaskFormError(error.message);
+        return;
+      }
+    } else {
+      // Create new task
+      const { error } = await supabase
+        .from("tasks")
+        .insert(taskData);
+
+      if (error) {
+        setTaskFormError(error.message);
+        return;
+      }
+    }
+
+    setIsTaskDialogOpen(false);
+    fetchTasks();
+  };
+
+  const handleDeleteTask = async () => {
+    if (!deletingTask) return;
+
+    const { error } = await supabase
+      .from("tasks")
+      .delete()
+      .eq("id", deletingTask.id);
+
+    if (error) {
+      console.error("Error deleting task:", error);
+      return;
+    }
+
+    setIsTaskDeleteDialogOpen(false);
+    setDeletingTask(null);
+    fetchTasks();
+  };
+
+  const getTaskStatusColor = (nextDueDate: string | null) => {
+    if (!nextDueDate) return "bg-gray-100 text-gray-800 border-gray-200";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(nextDueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return "bg-red-100 text-red-800 border-red-200"; // Overdue
+    if (diffDays <= 7) return "bg-yellow-100 text-yellow-800 border-yellow-200"; // Due soon
+    return "bg-green-100 text-green-800 border-green-200"; // Good
+  };
+
+  const getTaskStatusText = (nextDueDate: string | null) => {
+    if (!nextDueDate) return "Not scheduled";
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(nextDueDate);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return `Overdue by ${Math.abs(diffDays)} days`;
+    if (diffDays === 0) return "Due today";
+    if (diffDays <= 7) return `Due in ${diffDays} days`;
+    return `Due in ${diffDays} days`;
+  };
+
+  const getAssetName = (assetId: string | null) => {
+    if (!assetId) return "No asset";
+    const asset = assets.find(a => a.id === assetId);
+    return asset ? asset.name : "Unknown";
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -605,21 +806,154 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-3xl font-bold tracking-tight">Tasks</h2>
-              <p className="text-gray-500 mt-2">Manage maintenance tasks</p>
+              <p className="text-gray-500 mt-2">Manage maintenance tasks and schedules</p>
             </div>
-            <Button>Create Task</Button>
+            <Button onClick={openCreateTaskDialog} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create Task
+            </Button>
           </div>
 
+          {/* Task Stats */}
+          <div className="grid gap-4 md:grid-cols-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Tasks</CardTitle>
+                <ClipboardList className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{tasks.length}</div>
+                <p className="text-xs text-muted-foreground">Active tasks</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Overdue</CardTitle>
+                <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-red-600">
+                  {tasks.filter(t => {
+                    if (!t.next_due_date) return false;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const dueDate = new Date(t.next_due_date);
+                    dueDate.setHours(0, 0, 0, 0);
+                    return dueDate < today;
+                  }).length}
+                </div>
+                <p className="text-xs text-muted-foreground">Needs attention</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Due Soon</CardTitle>
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {tasks.filter(t => {
+                    if (!t.next_due_date) return false;
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
+                    const dueDate = new Date(t.next_due_date);
+                    dueDate.setHours(0, 0, 0, 0);
+                    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                    return diffDays >= 0 && diffDays <= 7;
+                  }).length}
+                </div>
+                <p className="text-xs text-muted-foreground">Next 7 days</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <CheckCircle className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {tasks.filter(t => t.last_done_date).length}
+                </div>
+                <p className="text-xs text-muted-foreground">Have history</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tasks Table */}
           <Card>
             <CardHeader>
               <CardTitle>All Tasks</CardTitle>
-              <CardDescription>View and manage maintenance tasks</CardDescription>
+              <CardDescription>Complete list of maintenance tasks and schedules</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-center py-12 text-gray-500">
-                Task management interface coming soon...
-                <p className="text-sm mt-2">Will include task list, status tracking, and assignments</p>
-              </div>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Task Name</TableHead>
+                    <TableHead>Asset</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Next Due</TableHead>
+                    <TableHead>Frequency</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {tasks.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        No tasks found. Click "Create Task" to add your first maintenance task.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    tasks.map((task) => (
+                      <TableRow key={task.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex items-center gap-2">
+                            <ClipboardList className="h-4 w-4 text-gray-500" />
+                            {task.task_name}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm text-gray-600">
+                            {getAssetName(task.asset_id)}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getTaskStatusColor(task.next_due_date)}>
+                            {getTaskStatusText(task.next_due_date)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{formatDate(task.next_due_date)}</TableCell>
+                        <TableCell>
+                          {task.frequency_days ? `Every ${task.frequency_days} days` : "Not set"}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => openEditTaskDialog(task)}
+                              className="hover:bg-blue-50"
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              Edit
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={() => openDeleteTaskDialog(task)}
+                              className="hover:bg-red-50 text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1029,6 +1363,185 @@ export default function AdminDashboard() {
             <Button variant="destructive" onClick={handleDeleteAsset} className="gap-2">
               <Trash2 className="h-4 w-4" />
               Delete Asset
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Create/Edit Dialog */}
+      <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {editingTask ? <Pencil className="h-5 w-5" /> : <Plus className="h-5 w-5" />}
+              {editingTask ? "Edit Task" : "Create New Task"}
+            </DialogTitle>
+            <DialogDescription>
+              {editingTask 
+                ? "Update task details and schedule" 
+                : "Create a new maintenance task with schedule"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="task-name" className="text-sm font-medium">
+                  Task Name *
+                </Label>
+                <Input
+                  id="task-name"
+                  placeholder="e.g., Replace HVAC filters"
+                  value={taskFormData.task_name}
+                  onChange={(e) => setTaskFormData({ ...taskFormData, task_name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="task-asset" className="text-sm font-medium">
+                  Asset *
+                </Label>
+                <Select 
+                  value={taskFormData.asset_id} 
+                  onValueChange={(value) => setTaskFormData({ ...taskFormData, asset_id: value })}
+                >
+                  <SelectTrigger id="task-asset">
+                    <SelectValue placeholder="Select an asset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {assets.length === 0 ? (
+                      <SelectItem value="loading" disabled>Loading assets...</SelectItem>
+                    ) : (
+                      assets.map((asset) => (
+                        <SelectItem key={asset.id} value={asset.id}>
+                          {asset.name} ({asset.type})
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="task-last-done" className="text-sm font-medium">
+                  Last Done Date
+                </Label>
+                <Input
+                  id="task-last-done"
+                  type="date"
+                  value={taskFormData.last_done_date}
+                  onChange={(e) => setTaskFormData({ ...taskFormData, last_done_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-next-due" className="text-sm font-medium">
+                  Next Due Date
+                </Label>
+                <Input
+                  id="task-next-due"
+                  type="date"
+                  value={taskFormData.next_due_date}
+                  onChange={(e) => setTaskFormData({ ...taskFormData, next_due_date: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="task-frequency" className="text-sm font-medium">
+                  Frequency (days)
+                </Label>
+                <Input
+                  id="task-frequency"
+                  type="number"
+                  min="1"
+                  placeholder="e.g., 30"
+                  value={taskFormData.frequency_days}
+                  onChange={(e) => setTaskFormData({ ...taskFormData, frequency_days: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="task-notes" className="text-sm font-medium">
+                Notes
+              </Label>
+              <Textarea
+                id="task-notes"
+                placeholder="Add any notes, instructions, or special requirements for this task..."
+                rows={4}
+                value={taskFormData.notes}
+                onChange={(e) => setTaskFormData({ ...taskFormData, notes: e.target.value })}
+              />
+            </div>
+            {taskFormError && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
+                {taskFormError}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTaskDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTask} className="gap-2">
+              {editingTask ? (
+                <>
+                  <Pencil className="h-4 w-4" />
+                  Save Changes
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Create Task
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Delete Dialog */}
+      <Dialog open={isTaskDeleteDialogOpen} onOpenChange={setIsTaskDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangle className="h-5 w-5" />
+              Delete Task
+            </DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this maintenance task? 
+              This action cannot be undone and all task history will be lost.
+            </DialogDescription>
+          </DialogHeader>
+          {deletingTask && (
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-4 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Task Name:</span>
+                <span className="font-medium">{deletingTask.task_name}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-600">Asset:</span>
+                <span className="font-medium">{getAssetName(deletingTask.asset_id)}</span>
+              </div>
+              {deletingTask.next_due_date && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Status:</span>
+                  <Badge className={getTaskStatusColor(deletingTask.next_due_date)}>
+                    {getTaskStatusText(deletingTask.next_due_date)}
+                  </Badge>
+                </div>
+              )}
+              {deletingTask.frequency_days && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-600">Frequency:</span>
+                  <span className="font-medium">Every {deletingTask.frequency_days} days</span>
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsTaskDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteTask} className="gap-2">
+              <Trash2 className="h-4 w-4" />
+              Delete Task
             </Button>
           </DialogFooter>
         </DialogContent>

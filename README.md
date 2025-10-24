@@ -2,22 +2,29 @@
 
 A modern maintenance management system built with Next.js, Supabase, and shadcn/ui.
 
+## ✅ Status: Production Ready
+
+Complete CRUD functionality for Users, Assets, and Tasks with role-based authentication and tabbed admin interface.
+
 ## Features
 
-- 🔐 **Role-based Authentication** - Admin and Maintainer roles
+- 🔐 **Role-based Authentication** - Admin, Supervisor, and Maintainer roles
 - 📊 **Tabbed Admin Dashboard** - Instant navigation without page reloads
-- 📦 **Asset Management** - Track equipment and maintenance items
-- 📋 **Task Scheduling** - Frequency-based recurring maintenance tasks
-- 👥 **User Management** - Manage users and permissions
-- ⚡ **Real-time Updates** - Powered by Supabase
+- 👥 **User Management** - Edit and delete existing users
+- 📦 **Asset Management** - Full CRUD for equipment tracking
+- 📋 **Task Management** - Full CRUD for maintenance scheduling
+- 📈 **Real-time Statistics** - Dashboard metrics for all entities
+- 🎨 **Modern UI** - Clean, responsive design with shadcn/ui
+- ⚡ **Optimized Performance** - Fast loading and updates
 
 ## Tech Stack
 
 - **Framework**: Next.js 15 with App Router
 - **Database**: Supabase (PostgreSQL)
-- **UI**: shadcn/ui + Tailwind CSS
+- **UI**: shadcn/ui + Tailwind CSS + Radix UI
 - **Language**: TypeScript
 - **Authentication**: Supabase Auth
+- **Icons**: Lucide React
 
 ## Getting Started
 
@@ -86,10 +93,56 @@ lib/
 Access at `/admin` (admin/supervisor roles only)
 
 **Tabs:**
-- 📊 Dashboard - Overview stats
-- 👥 Users - User management
-- 📋 Tasks - Task management
-- 📦 Assets - Asset management
+- 📊 **Dashboard** - Overview statistics and metrics
+- 👥 **Users** - Edit user details, change roles, delete users
+- 📋 **Tasks** - Create, edit, delete maintenance tasks with scheduling
+- 📦 **Assets** - Create, edit, delete equipment and assets
+
+**Features:**
+- Color-coded status badges
+- Confirmation dialogs for delete operations
+- Auto-refresh after changes
+- Comprehensive statistics cards
+- Responsive table views
+- Search and filter capabilities
+
+## User Roles
+
+- **Admin/Supervisor** → Redirected to `/admin` (full access)
+- **Maintainer** → Redirected to `/dashboard` (view-only)
+
+## Key Features
+
+### User Management
+- Edit user name and role
+- Delete users with confirmation
+- View user statistics (total, admins, maintainers)
+- Color-coded role badges
+
+### Asset Management
+- Create new assets with type, description, purchase date
+- Edit existing assets
+- Delete with cascade warning (affects linked tasks)
+- Asset statistics (total, types, recent additions)
+- Color-coded type badges
+
+### Task Management
+- Create tasks with **required** asset assignment
+- Schedule with last done date, next due date, frequency
+- Edit task details and schedules
+- Delete with confirmation
+- Status tracking (overdue, due soon, good)
+- Task statistics (total, overdue, due soon, completed)
+- Auto-loads assets when creating tasks
+
+## Documentation
+
+- **`DB_README.md`** - Database schema reference
+- **`USER_MANAGEMENT_FEATURES.md`** - User management documentation
+- **`ASSETS_MANAGEMENT_FEATURES.md`** - Asset management documentation
+- **`TASKS_MANAGEMENT_FEATURES.md`** - Task management documentation
+- **`TASKS_COMPLETE.md`** - Implementation summary
+- **`schema.sql`** - Complete database DDL
 
 ## Development
 
