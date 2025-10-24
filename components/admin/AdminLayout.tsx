@@ -1,17 +1,13 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { signOut } from "@/lib/supabaseAuth";
 import { 
   Bell, 
-  LogOut,
-  Menu
+  LogOut
 } from "lucide-react";
 
 interface AdminLayoutProps {
@@ -21,7 +17,6 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children, userEmail, userRole }: AdminLayoutProps) {
-  const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {

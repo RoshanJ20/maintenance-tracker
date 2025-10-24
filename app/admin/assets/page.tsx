@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -49,11 +49,7 @@ export default function AssetsPage() {
   });
   const [formError, setFormError] = useState<string>("");
 
-  useEffect(() => {
-    fetchUser();
-  }, []);
-
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
     const { data } = await supabase.auth.getSession();
     const currentUser = data.session?.user;
     
@@ -81,7 +77,11 @@ export default function AssetsPage() {
 
     setLoading(false);
     fetchAssets();
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchUser();
+  }, [fetchUser]);
 
   // ===== ASSET MANAGEMENT FUNCTIONS =====
   

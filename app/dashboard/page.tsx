@@ -12,7 +12,11 @@ import { ClipboardList, Package, LogOut } from "lucide-react";
 
 export default function UserDashboard() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ 
+    id: string; 
+    email?: string; 
+    email_confirmed_at?: string;
+  } | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 

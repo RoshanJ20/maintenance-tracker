@@ -19,8 +19,9 @@ export default function EmailAuthForm() {
       } else {
         await signInWithEmail(email, password);
       }
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
     }
   };
 

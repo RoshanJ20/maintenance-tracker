@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Users, ClipboardList, AlertTriangle, CheckCircle } from "lucide-react";
 
@@ -16,7 +15,7 @@ interface DashboardStats {
 }
 
 export default function AdminDashboard() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<string>("");
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -93,7 +92,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AdminLayout userEmail={user.email} userRole={userRole}>
+    <AdminLayout userEmail={user?.email || ""} userRole={userRole}>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>

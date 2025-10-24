@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ClipboardList } from "lucide-react";
 
 export default function TasksPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
 

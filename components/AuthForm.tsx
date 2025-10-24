@@ -30,8 +30,9 @@ export default function AuthForm() {
       await signUpWithEmail(email, password);
       setMessage("Check your email for a confirmation link!");
       setMode('confirmation');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during sign up';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -46,8 +47,9 @@ export default function AuthForm() {
     try {
       await signInWithEmail(email, password);
       // User will be redirected by AuthContext
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during sign in';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -60,8 +62,9 @@ export default function AuthForm() {
     try {
       await resendConfirmation(email);
       setMessage("Confirmation email sent!");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred resending confirmation';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import AdminLayout from "@/components/admin/AdminLayout";
@@ -75,7 +75,7 @@ interface TaskFormData {
   notes: string;
 }
 
-export default function AdminDashboard() {
+function AdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
@@ -114,7 +114,6 @@ export default function AdminDashboard() {
     description: "",
     purchasedate: ""
   });
-  const [assetFormError, setAssetFormError] = useState<string>("");
 
   // Task management state
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -134,15 +133,12 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchUserAndStats();
-  }, []);
-
-  useEffect(() => {
     // Update URL when tab changes (optional, for bookmarkable tabs)
     const newTab = searchParams.get("tab") || "dashboard";
     if (newTab !== activeTab) {
       setActiveTab(newTab);
     }
-  }, [searchParams]);
+  }, [searchParams, activeTab]);
 
   const fetchUserAndStats = async () => {
     const { data } = await supabase.auth.getSession();
@@ -1549,3 +1545,17 @@ export default function AdminDashboard() {
     </AdminLayout>
   );
 }
+
+function AdminDashboardWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    }>
+      <AdminDashboard />
+    </Suspense>
+  );
+}
+
+export default AdminDashboardWrapper;

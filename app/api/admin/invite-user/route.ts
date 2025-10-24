@@ -1,5 +1,4 @@
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
-import { supabase } from '@/lib/supabaseClient';
 import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
@@ -85,10 +84,11 @@ export async function POST(request: Request) {
       message: `Invitation sent to ${email}`
     });
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Unexpected error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
     return NextResponse.json(
-      { error: error.message || 'An unexpected error occurred' },
+      { error: errorMessage },
       { status: 500 }
     );
   }
