@@ -31,7 +31,7 @@ interface AssetFormData {
 }
 
 export default function AssetsPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<string>("");
   const [loading, setLoading] = useState(true);
   
@@ -313,7 +313,7 @@ export default function AssetsPage() {
                 {assets.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                      No assets found. Click "Add Asset" to create your first asset.
+                      No assets found. Click &quot;Add Asset&quot; to create your first asset.
                     </TableCell>
                   </TableRow>
                 ) : (

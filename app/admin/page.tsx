@@ -78,7 +78,7 @@ interface TaskFormData {
 export default function AdminDashboard() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [userRole, setUserRole] = useState<string>("");
   const [stats, setStats] = useState<DashboardStats>({
     totalUsers: 0,
@@ -595,7 +595,7 @@ export default function AdminDashboard() {
   }
 
   return (
-    <AdminLayout userEmail={user.email} userRole={userRole}>
+    <AdminLayout userEmail={user?.email || ""} userRole={userRole}>
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
           <TabsTrigger value="dashboard" className="flex items-center gap-2">
@@ -901,7 +901,7 @@ export default function AdminDashboard() {
                   {tasks.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-gray-500">
-                        No tasks found. Click "Create Task" to add your first maintenance task.
+                        No tasks found. Click &quot;Create Task&quot; to add your first maintenance task.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -1047,7 +1047,7 @@ export default function AdminDashboard() {
                   {assets.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-gray-500">
-                        No assets found. Click "Add Asset" to create your first asset.
+                        No assets found. Click &quot;Add Asset&quot; to create your first asset.
                       </TableCell>
                     </TableRow>
                   ) : (
