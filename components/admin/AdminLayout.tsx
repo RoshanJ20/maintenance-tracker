@@ -30,7 +30,7 @@ export default function AdminLayout({ children, userEmail, userRole }: AdminLayo
       <header className="fixed top-0 left-0 right-0 z-30 bg-white shadow-sm border-b h-16 flex items-center justify-between px-4 md:px-6">
         {/* Left side - Title */}
         <div className="flex items-center space-x-3">
-          <h1 className="text-lg md:text-xl font-bold">Maintenance Admin</h1>
+          <h1 className="text-lg md:text-xl font-bold">ADMIN</h1>
         </div>
 
         {/* Right side actions */}

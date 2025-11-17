@@ -117,6 +117,9 @@ function AdminDashboard() {
 
   // Task management state
   const [tasks, setTasks] = useState<Task[]>([]);
+  // Sorting state for tasks table: default to asset name ascending
+  const [tasksSortBy, setTasksSortBy] = useState<string>("asset");
+  const [tasksSortAsc, setTasksSortAsc] = useState<boolean>(true);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
   const [isTaskDeleteDialogOpen, setIsTaskDeleteDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -582,6 +585,43 @@ function AdminDashboard() {
     return asset ? asset.name : "Unknown";
   };
 
+  // Sorting handler and derived sorted tasks list (default: asset name ascending)
+  const handleTasksSort = (column: string) => {
+    if (tasksSortBy === column) {
+      setTasksSortAsc(!tasksSortAsc);
+    } else {
+      setTasksSortBy(column);
+      setTasksSortAsc(true);
+    }
+  };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    const col = tasksSortBy;
+
+    const getString = (s: string | null | undefined) => (s ? s.toLowerCase() : "");
+
+    let res = 0;
+
+    if (col === "asset") {
+      const va = getAssetName(a.asset_id);
+      const vb = getAssetName(b.asset_id);
+      res = getString(va).localeCompare(getString(vb));
+    } else if (col === "task_name") {
+      res = getString(a.task_name).localeCompare(getString(b.task_name));
+    } else if (col === "status" || col === "next_due") {
+      // sort by next_due_date (nulls last)
+      const ta = a.next_due_date ? new Date(a.next_due_date).getTime() : Number.POSITIVE_INFINITY;
+      const tb = b.next_due_date ? new Date(b.next_due_date).getTime() : Number.POSITIVE_INFINITY;
+      res = ta === tb ? 0 : (ta < tb ? -1 : 1);
+    } else if (col === "frequency") {
+      const fa = a.frequency_days ?? Number.POSITIVE_INFINITY;
+      const fb = b.frequency_days ?? Number.POSITIVE_INFINITY;
+      res = fa === fb ? 0 : (fa < fb ? -1 : 1);
+    }
+
+    return tasksSortAsc ? res : -res;
+  });
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -885,23 +925,43 @@ function AdminDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Task Name</TableHead>
-                    <TableHead>Asset</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Next Due</TableHead>
-                    <TableHead>Frequency</TableHead>
+                    <TableHead aria-sort={tasksSortBy === 'task_name' ? (tasksSortAsc ? 'ascending' : 'descending') : 'none'}>
+                      <button className="flex items-center gap-2" onClick={() => handleTasksSort('task_name')}>
+                        Task Name{tasksSortBy === 'task_name' ? (tasksSortAsc ? ' ▲' : ' ▼') : ''}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={tasksSortBy === 'asset' ? (tasksSortAsc ? 'ascending' : 'descending') : 'none'}>
+                      <button className="flex items-center gap-2" onClick={() => handleTasksSort('asset')}>
+                        Asset{tasksSortBy === 'asset' ? (tasksSortAsc ? ' ▲' : ' ▼') : ''}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={tasksSortBy === 'status' ? (tasksSortAsc ? 'ascending' : 'descending') : 'none'}>
+                      <button className="flex items-center gap-2" onClick={() => handleTasksSort('status')}>
+                        Status{tasksSortBy === 'status' ? (tasksSortAsc ? ' ▲' : ' ▼') : ''}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={tasksSortBy === 'next_due' ? (tasksSortAsc ? 'ascending' : 'descending') : 'none'}>
+                      <button className="flex items-center gap-2" onClick={() => handleTasksSort('next_due')}>
+                        Next Due{tasksSortBy === 'next_due' ? (tasksSortAsc ? ' ▲' : ' ▼') : ''}
+                      </button>
+                    </TableHead>
+                    <TableHead aria-sort={tasksSortBy === 'frequency' ? (tasksSortAsc ? 'ascending' : 'descending') : 'none'}>
+                      <button className="flex items-center gap-2" onClick={() => handleTasksSort('frequency')}>
+                        Frequency{tasksSortBy === 'frequency' ? (tasksSortAsc ? ' ▲' : ' ▼') : ''}
+                      </button>
+                    </TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {tasks.length === 0 ? (
+                  {sortedTasks.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                         No tasks found. Click &quot;Create Task&quot; to add your first maintenance task.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    tasks.map((task) => (
+                    sortedTasks.map((task) => (
                       <TableRow key={task.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-2">
